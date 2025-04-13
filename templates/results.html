@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados - Drive Cleaner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Resultados da Análise</h1>
+            <p class="subtitle">Imagens duplicadas na pasta Recentes</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="results-container">
+            {% if duplicates %}
+                <div class="summary-card">
+                    <h3>📊 Resumo</h3>
+                    <p>Foram encontradas <strong>{{ duplicates|length }}</strong> imagens potencialmente duplicadas.</p>
+                    <p>💾 Espaço recuperável: <strong>{{ '%0.2f'|format((duplicates|sum(attribute='duplicate.size')|int)/1024/1024) }} MB</strong></p>
+                </div>
+
+                {% for dup in duplicates %}
+                    <div class="duplicate-item">
+                        <div class="similarity-badge">
+                            Similaridade: {{ dup.similarity }}%
+                        </div>
+
+                        <div class="image-pair">
+                            <div class="image-box original">
+                                <h4>Original</h4>
+                                <img src="{{ dup.original.thumbnailLink|default(url_for('static', filename='img/default-thumbnail.jpg')) }}" alt="{{ dup.original.name }}">
+                                <p>{{ dup.original.name }}</p>
+                                <p class="file-info">
+                                    <span>📅 {{ dup.original.modifiedTime[:10] }}</span>
+                                    <span>📏 {{ '%0.1f'|format((dup.original.size|int)/1024) }} KB</span>
+                                </p>
+                            </div>
+
+                            <div class="image-box duplicate">
+                                <h4>Duplicata</h4>
+                                <img src="{{ dup.duplicate.thumbnailLink|default(url_for('static', filename='img/default-thumbnail.jpg')) }}" alt="{{ dup.duplicate.name }}">
+                                <p>{{ dup.duplicate.name }}</p>
+                                <p class="file-info">
+                                    <span>📅 {{ dup.duplicate.modifiedTime[:10] }}</span>
+                                    <span>📏 {{ '%0.1f'|format((dup.duplicate.size|int)/1024) }} KB</span>
+                                </p>
+                                <a href="{{ url_for('delete_file', file_id=dup.duplicate.id) }}" 
+                                   class="btn btn-danger" 
+                                   onclick="return confirm('Tem certeza que deseja excluir esta duplicata?')">
+                                    Excluir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-results">
+                    <img src="{{ url_for('static', filename='img/no-results.svg') }}" alt="Nenhuma duplicata" width="200">
+                    <h3>Nenhuma duplicata encontrada!</h3>
+                    <p>Suas imagens recentes estão organizadas sem repetições.</p>
+                    <a href="{{ url_for('index') }}" class="btn">Voltar</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
