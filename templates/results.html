@@ -27,7 +27,8 @@
                 <div class="summary-card">
                     <h3>📊 Resumo</h3>
                     <p>Foram encontradas <strong>{{ duplicates|length }}</strong> imagens potencialmente duplicadas.</p>
-                    <p>💾 Espaço recuperável: <strong>{{ '%0.2f'|format((duplicates|sum(attribute='duplicate.size')|int)/1024/1024) }} MB</strong></p>
+                    {% set total_size = duplicates | map(attribute='duplicate.size') | map('int') | sum %}
+                    <p>💾 Espaço recuperável: <strong>{{ '%0.2f'|format(total_size / 1024 / 1024) }} MB</strong></p>
                 </div>
 
                 {% for dup in duplicates %}

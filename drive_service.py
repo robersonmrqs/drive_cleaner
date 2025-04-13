@@ -9,88 +9,125 @@ from auth import get_google_credentials
 
 class DriveService:
     """Serviço para interação com o Google Drive"""
-    
+
     def __init__(self):
-        """Inicializa o serviço com credenciais válidas"""
         self.creds = get_google_credentials()
         self.service = build('drive', 'v3', credentials=self.creds)
-    
-    def list_recent_images(self):
+        self.progress = 0
+        self.total_files = 0
+        self.current_index = 0
+
+    def list_folders(self):
         """
-        Lista imagens recentes da pasta 'Recentes' do Drive
+        Lista todas as pastas do Drive
         Retorna:
-            list: Lista de dicionários com metadados das imagens
+            list: Lista de dicionários com ID e nome da pasta
         """
-        query = "mimeType contains 'image/' and trashed = false and 'root' in parents"
         results = self.service.files().list(
-            q=query,
-            pageSize=50,  # Limite para pasta Recentes
-            fields="files(id, name, mimeType, size, modifiedTime, thumbnailLink)",
-            orderBy="modifiedTime desc"
+            q="mimeType='application/vnd.google-apps.folder' and trashed = false",
+            fields="files(id, name)",
+            spaces='drive'
         ).execute()
         return results.get('files', [])
-    
+
+    def list_files(self, folder_id=None, file_types="image"):
+        """
+        Lista arquivos de um tipo e pasta especificados
+        Args:
+            folder_id (str): ID da pasta alvo (ou root)
+            file_types (str): 'image', 'video', 'document'
+        Retorna:
+            list: Lista de arquivos com metadados
+        """
+        mime_query = {
+            'image': "mimeType contains 'image/'",
+            'video': "mimeType contains 'video/'",
+            'document': "mimeType = 'application/pdf' or mimeType contains 'officedocument'"
+        }
+
+        query = f"{mime_query.get(file_types, mime_query['image'])} and trashed = false"
+        if folder_id:
+            query += f" and '{folder_id}' in parents"
+
+        files = []
+        page_token = None
+        while True:
+            response = self.service.files().list(
+                q=query,
+                spaces='drive',
+                fields="nextPageToken, files(id, name, mimeType, size, modifiedTime, thumbnailLink)",
+                pageSize=100,
+                pageToken=page_token
+            ).execute()
+            files.extend(response.get('files', []))
+            page_token = response.get('nextPageToken', None)
+            if not page_token:
+                break
+        return files
+
     def download_image(self, file_id):
         """
         Baixa uma imagem do Drive
-        Args:
-            file_id (str): ID do arquivo no Drive
-        Retorna:
-            BytesIO: Objeto com os dados da imagem
         """
         request = self.service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
-        
         done = False
         while not done:
             _, done = downloader.next_chunk()
-        
         fh.seek(0)
         return fh
-    
+
     def delete_file(self, file_id):
-        """
-        Remove um arquivo do Drive
-        Args:
-            file_id (str): ID do arquivo a ser removido
-        """
+        """Remove um arquivo do Drive"""
         self.service.files().delete(fileId=file_id).execute()
-    
-    def find_duplicates(self, threshold=5):
+
+    def find_duplicates(self, folder_id=None, file_type="image"):
         """
-        Identifica imagens duplicadas na pasta Recentes
-        Args:
-            threshold (int): Nível de similaridade (0-100)
-        Retorna:
-            list: Lista de dicionários com duplicatas encontradas
+        Identifica arquivos duplicados
         """
-        images = self.list_recent_images()
-        hashes = {}
+        self.progress = 0
+        files = self.list_files(folder_id, file_type)
+        self.total_files = len(files)
+        self.current_index = 0
+        hashes = []
         duplicates = []
-        
-        print(f"\n🔍 Analisando {len(images)} imagens recentes...")
-        
-        for img in tqdm(images, desc="Processando imagens"):
+
+        for i, f in enumerate(files):
+            self.current_index = i + 1
+            self.progress = int((self.current_index / self.total_files) * 100)
             try:
-                # Baixa e calcula hash perceptual
-                img_data = self.download_image(img['id'])
+                img_data = self.download_image(f['id'])
                 with Image.open(img_data) as image:
-                    img_hash = str(imagehash.average_hash(image))
-                
-                # Verifica duplicatas
-                if img_hash in hashes:
-                    duplicates.append({
-                        'original': hashes[img_hash],
-                        'duplicate': img,
-                        'similarity': 100 - (int(img_hash) % 100)  # Simula porcentagem
-                    })
+                    img_hash = imagehash.phash(image)
+
+                for entry in hashes:
+                    distance = img_hash - entry['hash']
+                    if distance <= 5:
+                        duplicates.append({
+                            'original': entry['data'],
+                            'duplicate': f,
+                            'similarity': int(100 - (distance / 64) * 100)
+                        })
+                        break
                 else:
-                    hashes[img_hash] = img
-                
-                img_data.close()
+                    hashes.append({'hash': img_hash, 'data': f})
+
             except Exception as e:
-                print(f"\n⚠️ Erro ao processar {img.get('name')}: {str(e)}")
+                print(f"Erro ao processar {f.get('name')}: {e}")
                 continue
-        
+
+        self.progress = 100
         return duplicates
+
+    def get_progress(self):
+        """Retorna progresso da análise atual"""
+        return self.progress
+
+    def get_detailed_progress(self):
+        """Retorna progresso detalhado com contadores"""
+        return {
+            'percent': self.progress,
+            'current': self.current_index,
+            'total': self.total_files
+        }
