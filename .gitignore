@@ -1,1 +1,1 @@
-".env\nvenv/\n__pycache__/\ncredentials/\n*.pyc" 
+".env\nvenv/\n__pycache__/\ncredentials/*\n*.pyc" 
