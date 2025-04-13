@@ -11,7 +11,7 @@
     <div class="container">
         <header class="header">
             <h1>Resultados da Análise</h1>
-            <p class="subtitle">Imagens duplicadas na pasta Recentes</p>
+            <p class="subtitle">Imagens duplicadas encontradas no seu Google Drive</p>
         </header>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -69,7 +69,7 @@
                 <div class="no-results">
                     <img src="{{ url_for('static', filename='img/no-results.svg') }}" alt="Nenhuma duplicata" width="200">
                     <h3>Nenhuma duplicata encontrada!</h3>
-                    <p>Suas imagens recentes estão organizadas sem repetições.</p>
+                    <p>Seus arquivos estão organizados sem repetições.</p>
                     <a href="{{ url_for('index') }}" class="btn">Voltar</a>
                 </div>
             {% endif %}
