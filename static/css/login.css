@@ -1,0 +1,32 @@
+/**
+ * Estilos específicos da página de login
+ */
+
+ .auth-container {
+    max-width: 500px;
+}
+
+.app-description {
+    background-color: rgba(66, 133, 244, 0.1);
+    border-radius: var(--border-radius);
+    padding: var(--space-md);
+    margin: var(--space-md) 0;
+    border-left: 4px solid var(--primary);
+}
+
+.auth-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.auth-section {
+    text-align: center;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .app-description {
+        background-color: rgba(66, 133, 244, 0.2);
+    }
+}

@@ -1,0 +1,76 @@
+/**
+ * Estilos específicos da página principal
+ */
+
+ .header {
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+}
+
+.user-info {
+    margin-top: var(--space-lg);
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    margin-bottom: var(--space-md);
+}
+
+.form-control {
+    width: 100%;
+    padding: var(--space-sm);
+    margin-top: var(--space-xs);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+.actions {
+    margin-top: var(--space-lg);
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.progress-container {
+    position: relative;
+    margin-top: var(--space-xl);
+}
+
+.progress-bar-bg {
+    background-color: var(--border-color);
+    border-radius: 25px;
+    height: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary);
+    width: 0%;
+    transition: width 0.5s ease-in-out;
+}
+
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--space-sm);
+}
+
+#progress-text {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -25px;
+    font-weight: 500;
+}
