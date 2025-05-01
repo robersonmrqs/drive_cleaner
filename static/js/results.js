@@ -82,32 +82,39 @@ class ResultsController {
   
     /**
      * Manipula exclusão individual
+     * @param {Event} event - Evento de clique
      */
     async handleSingleDelete(event) {
       const button = event.currentTarget;
       const fileId = button.dataset.fileId;
       const itemBox = button.closest('.duplicate-item');
-  
+
       if (!confirm('Tem certeza que deseja excluir esta duplicata?')) {
-        return;
+          return;
       }
-  
+
       try {
-        const response = await fetch(`/delete/${fileId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (response.ok) {
-          itemBox.remove();
-          this.updateResultsCount();
-          this.showAlert('Arquivo excluído com sucesso.', 'success');
-        } else {
-          throw new Error('Falha ao excluir');
-        }
+          const response = await fetch('/delete-multiple', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ file_ids: [fileId] })  // Envia como array com um item
+          });
+          
+          if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                  itemBox.remove();
+                  this.updateResultsCount();
+                  this.showAlert('Arquivo excluído com sucesso.', 'success');
+              } else {
+                  throw new Error(data.error || 'Falha ao excluir');
+              }
+          } else {
+              throw new Error('Falha na requisição');
+          }
       } catch (error) {
-        console.error('Erro:', error);
-        this.showAlert('Erro ao excluir o arquivo.', 'danger');
+          console.error('Erro:', error);
+          this.showAlert(`Erro ao excluir o arquivo: ${error.message}`, 'danger');
       }
     }
   

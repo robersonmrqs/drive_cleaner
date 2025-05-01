@@ -1,61 +1,167 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <!-- 
+        Meta Configurações Básicas
+        Define charset, viewport e título da página principal
+    -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drive Cleaner - Remover Duplicatas</title>
+    
+    <!-- 
+        Fontes Google - Roboto em três pesos (300, 400, 500)
+        Consistente com toda a aplicação
+    -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- 
+        Folhas de Estilo
+        - style.css: Estilos globais da aplicação
+        - index.css: Estilos específicos da página principal
+    -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="{{ url_for('static', filename='js/progress.js') }}" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    
+    <!-- 
+        JavaScript - index.js
+        Carregado com defer para não bloquear renderização
+        Contém toda a lógica de interação da página principal
+    -->
+    <script src="{{ url_for('static', filename='js/index.js') }}" defer></script>
 </head>
 <body>
+    <!-- 
+        Container Principal
+        Estrutura consistente com outras páginas
+    -->
     <div class="container">
-        <header class="header">
-            <h1>Drive Cleaner</h1>
-            <p class="subtitle">Remova arquivos duplicados do seu Google Drive</p>
-        </header>
-
-        <div class="card">
+        <!-- 
+            Sistema de Alertas
+            Exibe mensagens flash com categorias (success, danger, etc)
+            Implementação idêntica em todas as páginas
+        -->
+        <div id="system-alerts">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                            <!-- Remove automaticamente após 3 segundos -->
+                            <script>
+                                setTimeout(() => {
+                                    document.querySelectorAll('.alert').forEach(el => el.remove());
+                                }, 3000);
+                            </script>
+                        </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
-
-            <form action="{{ url_for('analisar') }}" method="POST">
-                <h2>Escolha o que analisar:</h2>
-
-                <label for="folder_id"><strong>📂 Pasta:</strong></label>
-                <select name="folder_id" id="folder_id" class="form-control">
-                    <option value="">Drive inteiro</option>
-                    {% for folder in folders %}
-                        <option value="{{ folder.id }}">{{ folder.name }}</option>
-                    {% endfor %}
-                </select>
-
-                <label for="file_type" style="margin-top: 1rem;"><strong>📄 Tipo de Arquivo:</strong></label>
-                <select name="file_type" id="file_type" class="form-control">
-                    <option value="image">Imagens</option>
-                    <option value="video">Vídeos</option>
-                    <option value="document">Documentos</option>
-                </select>
-
-                <div class="text-center" style="margin-top: 2rem;">
-                    <button type="submit" class="btn">🔍 Iniciar Análise</button>
-                </div>
-            </form>
         </div>
 
-        <div class="progress-container">
-            <div class="progress-bar-bg">
-                <div id="progress-bar" class="progress-bar"></div>
+        <!-- Conteúdo Principal -->
+        <main>
+            <!-- 
+                Cabeçalho da Página
+                Contém título, subtítulo e informações do usuário
+            -->
+            <header class="header">
+                <h1>Drive Cleaner</h1>
+                <p class="subtitle">Remova arquivos duplicados do seu Google Drive</p>
+                
+                <!-- 
+                    Informações do Usuário
+                    Exibe email quando disponível e botão de logout
+                -->
+                <div class="user-info">
+                    {% if email %}
+                        <span>Logado como {{ email }}</span>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-small">Desconectar</a>
+                </div>
+            </header>
+
+            <!-- 
+                Card de Formulário
+                Contém os controles para iniciar a análise
+            -->
+            <section class="card">
+                <!-- 
+                    Formulário de Análise
+                    - action: endpoint para submissão
+                    - method: POST para envio seguro
+                -->
+                <form id="analysis-form" action="{{ url_for('analisar') }}" method="POST">
+                    <h2>Escolha o que analisar:</h2>
+
+                    <!-- Grupo de Controle - Seleção de Pasta -->
+                    <div class="form-group">
+                        <label for="folder_id"><strong>📂 Pasta:</strong></label>
+                        <select name="folder_id" id="folder_id" class="form-control">
+                            <option value="">Drive inteiro</option>
+                            <!-- 
+                                Opções de Pastas
+                                Preenchidas dinamicamente pelo backend
+                            -->
+                            {% for folder in folders %}
+                                <option value="{{ folder.id }}">{{ folder.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Grupo de Controle - Tipo de Arquivo -->
+                    <div class="form-group">
+                        <label for="file_type"><strong>📄 Tipo de Arquivo:</strong></label>
+                        <select name="file_type" id="file_type" class="form-control">
+                            <option value="all">Todos os arquivos</option>
+                            <option value="image">Imagens</option>
+                            <option value="video">Vídeos</option>
+                            <option value="document">Documentos</option>
+                        </select>
+                    </div>
+
+                    <!-- 
+                        Ações Principais
+                        Centralizadas na parte inferior do card
+                    -->
+                    <div class="actions text-center">
+                        <!-- Botão de Análise - Muda de estado dinamicamente -->
+                        <button type="submit" id="analyze-btn" class="btn">
+                            🔍 Iniciar Análise
+                        </button>
+
+                        <!-- Botão de Cancelar - Visível apenas durante análise -->
+                        <button type="button" id="cancel-btn" class="btn btn-danger" style="display: none;">
+                            ❌ Cancelar
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 
+                Container de Progresso
+                Exibido durante a análise de arquivos
+            -->
+            <div class="progress-container">
+                <!-- Texto de Progresso -->
+                <span id="progress-text">0 / 0 arquivos (0%)</span>
+                
+                <!-- Barra de Progresso Visual -->
+                <div class="progress-bar-bg">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                
+                <!-- 
+                    Contadores de Tempo
+                    - Decorrido: tempo desde o início
+                    - Restante: estimativa baseada no progresso
+                -->
+                <div class="progress-labels">
+                    <span id="elapsed-time" style="display: none;">⏱️ 00:00</span>
+                    <span id="remaining-time" style="display: none; margin-left: auto;">⏳ 00:00</span>
+                </div>
             </div>
-            <div class="progress-label">
-                <span id="progress-text">0 / 0 arquivos (0%)</span> concluído
-            </div>
-        </div>        
+        </main>
     </div>
 </body>
 </html>

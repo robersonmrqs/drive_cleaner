@@ -1,235 +1,289 @@
-/* Estilos modernos - Versão melhorada */
+/**
+ * Estilos globais para o Drive Cleaner
+ * @version 2.0
+ */
+
+/* ==================== VARIÁVEIS CSS ==================== */
 :root {
-    --primary: #4285F4;
-    --danger: #EA4335;
-    --success: #34A853;
-    --warning: #FBBC05;
-    --light: #f8f9fa;
-    --dark: #202124;
+  /* ===== Cores do Tema Claro (padrão) ===== */
+  --primary: #4285F4;       /* Azul Google */
+  --primary-dark: #3367d6;  /* Azul mais escuro para hover */
+  --danger: #EA4335;        /* Vermelho Google */
+  --danger-dark: #d33426;   /* Vermelho mais escuro para hover */
+  --success: #34A853;       /* Verde Google */
+  --warning: #FBBC05;       /* Amarelo Google */
+  
+  /* ===== Tons de cinza e neutros ===== */
+  --light: #f8f9fa;         /* Fundo claro */
+  --light-gray: #e8e8e8;    /* Bordas claras */
+  --medium-gray: #5f6368;   /* Texto secundário */
+  --dark-gray: #444;        /* Texto mais escuro */
+  --dark: #202124;          /* Texto principal */
+  
+  /* ===== Cores de fundo ===== */
+  --bg-color: #f1f3f4;      /* Cor de fundo da página */
+  --card-bg: white;         /* Fundo de cartões */
+  --input-bg: white;        /* Fundo de inputs */
+  
+  /* ===== Cores de texto ===== */
+  --text-color: var(--dark);/* Cor principal do texto */
+  --text-light: #5f6368;    /* Texto secundário */
+  
+  /* ===== Bordas ===== */
+  --border-color: var(--light-gray);
+  --border-radius: 8px;      /* Raio de borda padrão */
+  --border-radius-sm: 4px;   /* Raio pequeno */
+  
+  /* ===== Sombras ===== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 5px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 2px 10px rgba(0, 0, 0, 0.1);
+  
+  /* ===== Espaçamentos ===== */
+  --space-xs: 0.25rem;      /* 4px */
+  --space-sm: 0.5rem;       /* 8px */
+  --space-md: 1rem;         /* 16px */
+  --space-lg: 1.5rem;       /* 24px */
+  --space-xl: 2rem;         /* 32px */
+  
+  /* ===== Transições ===== */
+  --transition: all 0.3s ease;
+}
+
+/* ===== Tema Escuro (prefers-color-scheme) ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #202124;    /* Fundo escuro */
+    --card-bg: #2d2f33;     /* Cartões escuros */
+    --text-color: #e8eaed;  /* Texto claro */
+    --text-light: #9aa0a6;  /* Texto secundário claro */
+    --border-color: #444;   /* Bordas escuras */
+    --input-bg: #3c4043;    /* Fundo de inputs escuros */
+    --light: #2d2f33;       /* Light mode ajustado */
+  }
+}
+
+/* ==================== RESET E ESTILOS BASE ==================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
 }
 
 body {
-    font-family: 'Roboto', sans-serif;
-    line-height: 1.6;
-    color: var(--dark);
-    background-color: #f1f3f4;
-    margin: 0;
-    padding: 0;
+  font-family: 'Roboto', sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  transition: var(--transition);
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ==================== COMPONENTES GLOBAIS ==================== */
+
+/* Container principal */
 .container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 1200px;
+  margin: var(--space-xl) auto;
+  padding: var(--space-xl);
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition);
 }
 
-.header {
-    text-align: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #eee;
-}
-
-h1 {
-    color: var(--primary);
-    margin-bottom: 0.5rem;
-}
-
-.subtitle {
-    color: #5f6368;
-    font-weight: 300;
-}
-
+/* Cartões */
 .card {
-    background: white;
-    border-radius: 8px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
 }
 
-.card:hover {
-    transform: translateY(-2px);
-}
-
+/* Botões */
 .btn {
-    display: inline-block;
-    background: var(--primary);
-    color: white;
-    padding: 0.8rem 1.5rem;
-    border-radius: 4px;
-    text-decoration: none;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  color: white;
 }
 
 .btn:hover {
-    background: #3367d6;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
+/* Botão primário */
+.btn-primary {
+  background-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Botão de perigo */
 .btn-danger {
-    background: var(--danger);
+  background-color: var(--danger);
 }
 
 .btn-danger:hover {
-    background: #d33426;
+  background-color: var(--danger-dark);
 }
 
-/* Resultados */
-.duplicate-item {
-    background: white;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+/* Botão pequeno */
+.btn-small {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  background-color: var(--light);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
 }
 
-.image-pair {
-    display: flex;
-    gap: 2rem;
-    margin-top: 1rem;
+.btn-small:hover {
+  background-color: var(--border-color);
 }
 
-.image-box {
-    flex: 1;
-    padding: 1rem;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    text-align: center;
+/* Formulários */
+.form-control {
+  width: 100%;
+  padding: var(--space-sm);
+  margin-top: var(--space-xs);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  transition: var(--transition);
 }
 
-.image-box img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
-    .image-pair {
-        flex-direction: column;
-    }
-}
-
+/* Alertas */
 .alert {
-    padding: 12px 16px;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-
-.alert-danger {
-    background-color: #fde8e8;
-    color: var(--danger);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--space-md);
+  transition: var(--transition);
 }
 
 .alert-success {
-    background-color: #e6f4ea;
-    color: var(--success);
+  background-color: rgba(52, 168, 83, 0.1);
+  color: var(--success);
+  border-left: 4px solid var(--success);
 }
 
+.alert-danger {
+  background-color: rgba(234, 67, 53, 0.1);
+  color: var(--danger);
+  border-left: 4px solid var(--danger);
+}
+
+.alert-warning {
+  background-color: rgba(251, 188, 5, 0.1);
+  color: var(--warning);
+  border-left: 4px solid var(--warning);
+}
+
+/* Barra de progresso */
+.progress-container {
+  position: relative;
+  margin-top: var(--space-xl);
+}
+
+.progress-bar-bg {
+  background-color: var(--border-color);
+  border-radius: 25px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary);
+  width: 0%;
+  transition: width 0.5s ease-in-out;
+}
+
+/* ==================== CLASSES UTILITÁRIAS ==================== */
+
+/* Texto */
 .text-center {
-    text-align: center;
+  text-align: center;
 }
 
-.summary-card {
-    background: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
+.text-muted {
+  color: var(--text-light);
 }
 
-.similarity-badge {
-    background: var(--warning);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    display: inline-block;
-    margin-bottom: 1rem;
-    font-weight: 500;
+/* Espaçamentos */
+.mt-1 { margin-top: var(--space-xs); }
+.mt-2 { margin-top: var(--space-sm); }
+.mt-3 { margin-top: var(--space-md); }
+.mt-4 { margin-top: var(--space-lg); }
+.mt-5 { margin-top: var(--space-xl); }
+
+/* Flexbox */
+.flex {
+  display: flex;
 }
 
-.file-info {
-    display: flex;
-    gap: 12px;
-    color: #5f6368;
-    font-size: 0.9rem;
-    margin-top: 8px;
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.no-results {
-    text-align: center;
-    padding: 3rem 0;
+/* Responsividade */
+.hidden-mobile {
+  display: block;
 }
 
-.no-results img {
-    opacity: 0.7;
-    margin-bottom: 1.5rem;
+/* ==================== MEDIA QUERIES ==================== */
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-md);
+    margin: var(--space-md);
+  }
+  
+  .hidden-mobile {
+    display: none;
+  }
 }
 
-.form-control {
+@media (max-width: 480px) {
+  html {
+    font-size: 14px;
+  }
+  
+  .btn {
     width: 100%;
-    padding: 0.6rem;
-    margin-top: 0.3rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-}
-
-.progress-container {
-    margin-top: 2rem;
-    text-align: center;
-}
-
-.progress-bar-bg {
-    background-color: #e0e0e0;
-    border-radius: 25px;
-    height: 20px;
-    width: 100%;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-}
-
-.progress-bar {
-    height: 100%;
-    background-color: var(--primary);
-    width: 0%;
-    transition: width 0.5s ease-in-out;
-}
-
-.progress-label {
-    font-weight: 500;
-    color: #333;
-}
-
-.progress-container {
-    margin-top: 2rem;
-    text-align: center;
-}
-
-.progress-bar-bg {
-    background-color: #e0e0e0;
-    border-radius: 25px;
-    height: 20px;
-    width: 100%;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-}
-
-.progress-bar {
-    height: 100%;
-    background-color: var(--primary);
-    width: 0%;
-    transition: width 0.5s ease-in-out;
-}
-
-.progress-label {
-    font-weight: 500;
-    color: #333;
+  }
 }
