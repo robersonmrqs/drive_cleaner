@@ -1,2 +1,3 @@
 ".env\nvenv/\n__pycache__/\ncredentials/*\n*.pyc" 
 -e "\n# Environment files\n.env\n\n# Credentials\ncredentials/tokens.json\ncredentials/credentials.json" 
+".env" 
