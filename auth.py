@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Optional, Dict, Any
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -7,114 +8,113 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from config import Config
 
-
-def get_google_auth_url() -> str:
-    """Gera a URL de autenticação OAuth 2.0 para o Google.
+class AuthService:
+    """Serviço de autenticação para múltiplos provedores de armazenamento."""
     
-    Returns:
-        URL de autenticação para redirecionamento do usuário.
-        
-    Raises:
-        Exception: Se ocorrer erro ao gerar a URL de autenticação.
-    """
-    try:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            Config.CREDENTIALS_PATH,
-            Config.SCOPES,
-            redirect_uri=f'http://localhost:{Config.PORT}/auth'
-        )
-
-        auth_url, _ = flow.authorization_url(
-            access_type='offline',
-            include_granted_scopes='true',
-            prompt='consent'
-        )
-        return auth_url
-        
-    except Exception as e:
-        raise Exception(f"Erro ao gerar URL de autenticação: {e}")
-
-
-def validate_google_auth(auth_code: str) -> Credentials:
-    """Valida o código de autorização e obtém as credenciais do usuário.
-    
-    Args:
-        auth_code: Código de autorização retornado pelo Google OAuth.
-        
-    Returns:
-        Credentials: Objeto de credenciais do Google.
-        
-    Raises:
-        Exception: Se ocorrer erro na validação ou obtenção de tokens.
-    """
-    try:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            Config.CREDENTIALS_PATH,
-            Config.SCOPES,
-            redirect_uri=f'http://localhost:{Config.PORT}/auth'
-        )
-
-        flow.fetch_token(code=auth_code)
-        creds = flow.credentials
-
-        # Salvar credenciais para uso futuro
-        os.makedirs(os.path.dirname(Config.TOKEN_PATH), exist_ok=True)
-        with open(Config.TOKEN_PATH, 'w') as token:
-            token.write(creds.to_json())
-
-        return creds
-        
-    except Exception as e:
-        raise Exception(f"Erro na validação da autenticação: {e}")
-
-
-def get_google_credentials(validate_only: bool = False) -> Optional[Credentials]:
-    """Obtém credenciais Google válidas a partir do token armazenado.
-    
-    Args:
-        validate_only: Se True, apenas valida sem tentar autenticar.
-        
-    Returns:
-        Credentials válidas ou None se não puder obter.
-        
-    Raises:
-        Exception: Se validate_only=True e as credenciais forem inválidas.
-    """
-    creds = None
-    
-    # Verifica se existe token salvo
-    if os.path.exists(Config.TOKEN_PATH):
+    @staticmethod
+    def get_google_auth_url() -> str:
+        """Gera a URL de autenticação OAuth 2.0 para o Google."""
         try:
-            creds = Credentials.from_authorized_user_file(Config.TOKEN_PATH, Config.SCOPES)
-        except Exception as e:
-            os.remove(Config.TOKEN_PATH)
-            if validate_only:
-                raise Exception("Credenciais inválidas devido a mudança de escopos")
-            return None
+            flow = InstalledAppFlow.from_client_config(
+                Config.get_google_credentials(),
+                scopes=Config.GOOGLE_SCOPES,
+                redirect_uri=Config.GOOGLE_REDIRECT_URI
+            )
 
-    # Valida credenciais existentes
-    if creds and creds.valid:
-        return creds
-        
-    # Tenta renovar credenciais expiradas
-    if creds and creds.expired and creds.refresh_token:
-        try:
-            creds.refresh(Request())
+            auth_url, _ = flow.authorization_url(
+                access_type='offline',
+                include_granted_scopes='true',
+                prompt='consent'
+            )
+            return auth_url
             
-            # Salva as credenciais atualizadas
-            with open(Config.TOKEN_PATH, 'w') as token:
-                token.write(creds.to_json())
-                
+        except Exception as e:
+            raise Exception(f"Erro ao gerar URL de autenticação do Google: {e}")
+
+    @staticmethod
+    def validate_google_auth(auth_code: str) -> Credentials:
+        """Valida o código de autorização do Google e obtém as credenciais."""
+        try:
+            flow = InstalledAppFlow.from_client_config(
+                Config.get_google_credentials(),
+                scopes=Config.GOOGLE_SCOPES,
+                redirect_uri=Config.GOOGLE_REDIRECT_URI
+            )
+
+            flow.fetch_token(code=auth_code)
+            creds = flow.credentials
+
+            # Salva as credenciais no arquivo de tokens
+            AuthService._save_tokens({'google': AuthService._credentials_to_dict(creds)})
             return creds
             
         except Exception as e:
-            os.remove(Config.TOKEN_PATH)
+            raise Exception(f"Erro na validação da autenticação do Google: {e}")
+
+    @staticmethod
+    def get_google_credentials(validate_only: bool = False) -> Optional[Credentials]:
+        """Obtém credenciais Google válidas a partir do token armazenado."""
+        tokens = AuthService._load_tokens()
+        if not tokens or 'google' not in tokens:
             if validate_only:
-                raise Exception("Credenciais expiradas")
+                raise Exception("Nenhum token Google encontrado")
             return None
 
-    # Se validate_only, não tenta autenticar, apenas verifica
-    if validate_only:
-        raise Exception("Autenticação necessária")
-        
-    return None
+        try:
+            creds = Credentials.from_authorized_user_info(tokens['google'])
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                    tokens['google'] = AuthService._credentials_to_dict(creds)
+                    AuthService._save_tokens(tokens)
+                else:
+                    if validate_only:
+                        raise Exception("Credenciais Google inválidas")
+                    return None
+            return creds
+        except Exception as e:
+            AuthService._remove_token('google')
+            if validate_only:
+                raise Exception(f"Erro ao validar credenciais Google: {e}")
+            return None
+
+    @staticmethod
+    def _credentials_to_dict(creds: Credentials) -> Dict[str, Any]:
+        """Converte credenciais Google para dicionário."""
+        return {
+            'token': creds.token,
+            'refresh_token': creds.refresh_token,
+            'token_uri': creds.token_uri,
+            'client_id': creds.client_id,
+            'client_secret': creds.client_secret,
+            'scopes': creds.scopes
+        }
+
+    @staticmethod
+    def _save_tokens(tokens: Dict[str, Any]) -> None:
+        """Salva todos os tokens no arquivo."""
+        os.makedirs(os.path.dirname(Config.TOKEN_PATH), exist_ok=True)
+        with open(Config.TOKEN_PATH, 'w') as token_file:
+            json.dump(tokens, token_file)
+
+    @staticmethod
+    def _load_tokens() -> Dict[str, Any]:
+        """Carrega todos os tokens do arquivo."""
+        if not os.path.exists(Config.TOKEN_PATH):
+            return {}
+        with open(Config.TOKEN_PATH, 'r') as token_file:
+            return json.load(token_file)
+
+    @staticmethod
+    def _remove_token(provider: str) -> None:
+        """Remove o token de um provedor específico."""
+        tokens = AuthService._load_tokens()
+        if provider in tokens:
+            del tokens[provider]
+            AuthService._save_tokens(tokens)
+
+    @staticmethod
+    def logout():
+        """Remove todos os tokens de autenticação."""
+        if os.path.exists(Config.TOKEN_PATH):
+            os.remove(Config.TOKEN_PATH)

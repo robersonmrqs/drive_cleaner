@@ -7,11 +7,18 @@ import imagehash
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from config import Config
-from auth import get_google_credentials
-
+from auth import AuthService
 
 class DriveService:
-    """Serviço para interação com a API do Google Drive com suporte a análise de duplicatas."""
+    """Serviço para interação com a API do Google Drive com suporte a análise de duplicatas.
+
+    Atributos:
+        FILE_TYPE_ALL: Constante para filtro 'todos os arquivos'
+        FILE_TYPE_IMAGE: Constante para filtro 'apenas imagens'
+        FILE_TYPE_VIDEO: Constante para filtro 'apenas vídeos'
+        FILE_TYPE_DOCUMENT: Constante para filtro 'apenas documentos'
+        IMAGE_SIMILARITY_THRESHOLD: Limite de similaridade para imagens (0-64)
+    """
 
     # Constantes para tipos de arquivo
     FILE_TYPE_ALL = 'all'
@@ -26,12 +33,12 @@ class DriveService:
         """Inicializa o serviço Drive com credenciais.
         
         Args:
-            creds: Credenciais do Google. Se None, tenta obter automaticamente.
+            creds: Credenciais do Google. Se None, tenta obter automaticamente via AuthService.
             
         Raises:
             Exception: Se não for possível obter credenciais válidas.
         """
-        self.creds = creds or get_google_credentials()
+        self.creds = creds or AuthService.get_google_credentials()
         if not self.creds:
             raise Exception("Credenciais do Google inválidas ou não fornecidas")
 
@@ -62,7 +69,7 @@ class DriveService:
         """Obtém informações básicas do usuário autenticado.
         
         Returns:
-            Dicionário com 'email' e 'name' do usuário.
+            Dicionário com 'email' e 'name' do usuário. Retorna valores padrão em caso de erro.
         """
         try:
             oauth_service = build('oauth2', 'v2', credentials=self.creds)
@@ -93,11 +100,11 @@ class DriveService:
         """Lista arquivos do Google Drive com filtros opcionais.
         
         Args:
-            folder_id: ID da pasta para filtrar (None para todo o Drive).
-            file_type: Tipo de arquivo ('all', 'image', 'video', 'document').
+            folder_id: ID da pasta para filtrar (None para todo o Drive)
+            file_type: Tipo de arquivo ('all', 'image', 'video', 'document')
             
         Returns:
-            Lista de arquivos com metadados.
+            Lista de arquivos com metadados (id, name, mimeType, size, modifiedTime, thumbnailLink)
         """
         query = self._build_file_query(folder_id, file_type)
         files = []
@@ -123,11 +130,11 @@ class DriveService:
         """Constrói a query para listagem de arquivos.
         
         Args:
-            folder_id: ID da pasta ou None.
-            file_type: Tipo de arquivo a filtrar.
+            folder_id: ID da pasta ou None
+            file_type: Tipo de arquivo a filtrar
             
         Returns:
-            String com a query formatada.
+            String com a query formatada para a API
         """
         mime_queries = {
             self.FILE_TYPE_IMAGE: "mimeType contains 'image/'",
@@ -149,11 +156,15 @@ class DriveService:
         """Encontra arquivos duplicados no Google Drive.
         
         Args:
-            folder_id: ID da pasta para analisar (None para todo o Drive).
-            file_type: Tipo de arquivo ('all', 'image', 'video', 'document').
+            folder_id: ID da pasta para analisar (None para todo o Drive)
+            file_type: Tipo de arquivo ('all', 'image', 'video', 'document')
             
         Returns:
             Lista de duplicatas encontradas ou None se cancelado.
+            Cada item contém:
+            - original: Dados do arquivo original
+            - duplicate: Dados do arquivo duplicado
+            - similarity: Porcentagem de similaridade
         """
         self._reset_analysis_state()
         files = self.list_files(folder_id, file_type)
@@ -180,11 +191,19 @@ class DriveService:
         return duplicates
 
     def _check_cancellation(self) -> bool:
-        """Verifica se a análise foi cancelada."""
+        """Verifica se a análise foi cancelada.
+        
+        Returns:
+            True se a análise foi cancelada, False caso contrário
+        """
         return self.cancelled
 
     def _update_progress(self, current_index: int) -> None:
-        """Atualiza o progresso da análise."""
+        """Atualiza o progresso da análise.
+        
+        Args:
+            current_index: Índice do arquivo atual sendo processado
+        """
         self.current_index = current_index
         self.progress = int((current_index / self.total_files) * 100) if self.total_files > 0 else 0
 
@@ -198,12 +217,12 @@ class DriveService:
         """Calcula o hash do arquivo conforme seu tipo.
         
         Args:
-            content: Conteúdo binário do arquivo.
-            file_data: Metadados do arquivo.
-            file_type: Tipo do arquivo.
+            content: Conteúdo binário do arquivo
+            file_data: Metadados do arquivo
+            file_type: Tipo do arquivo
             
         Returns:
-            Tupla com (hash, função de comparação).
+            Tupla com (hash, função de comparação)
         """
         is_image = (file_type == self.FILE_TYPE_IMAGE if file_type != self.FILE_TYPE_ALL 
                    else file_data.get('mimeType', '').startswith('image/'))
@@ -225,7 +244,15 @@ class DriveService:
                             compare_fn: Callable[[Any, Any], bool],
                             seen_hashes: List[Dict[str, Any]], 
                             duplicates: List[Dict[str, Any]]) -> None:
-        """Verifica se o arquivo é duplicado e atualiza as listas."""
+        """Verifica se o arquivo é duplicado e atualiza as listas.
+        
+        Args:
+            file_data: Metadados do arquivo atual
+            file_hash: Hash gerado para o arquivo
+            compare_fn: Função para comparação de hashes
+            seen_hashes: Lista de hashes já processados
+            duplicates: Lista para armazenar duplicatas encontradas
+        """
         for entry in seen_hashes:
             if compare_fn(file_hash, entry['hash']):
                 similarity = self._calculate_similarity(file_hash, entry['hash'])
@@ -239,7 +266,15 @@ class DriveService:
             seen_hashes.append({'hash': file_hash, 'data': file_data})
 
     def _calculate_similarity(self, hash1: Any, hash2: Any) -> int:
-        """Calcula a similaridade entre dois hashes."""
+        """Calcula a similaridade entre dois hashes.
+        
+        Args:
+            hash1: Primeiro hash para comparação
+            hash2: Segundo hash para comparação
+            
+        Returns:
+            Porcentagem de similaridade (0-100)
+        """
         if isinstance(hash1, imagehash.ImageHash):
             return int(100 - ((hash1 - hash2) / 64) * 100)
         return 100
@@ -248,10 +283,10 @@ class DriveService:
         """Baixa o conteúdo binário de um arquivo.
         
         Args:
-            file_id: ID do arquivo no Google Drive.
+            file_id: ID do arquivo no Google Drive
             
         Returns:
-            Conteúdo binário do arquivo.
+            Conteúdo binário do arquivo
         """
         request = self.service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
@@ -267,7 +302,7 @@ class DriveService:
         """Exclui um arquivo do Google Drive.
         
         Args:
-            file_id: ID do arquivo a ser excluído.
+            file_id: ID do arquivo a ser excluído
         """
         self.service.files().delete(fileId=file_id).execute()
 
@@ -275,7 +310,7 @@ class DriveService:
         """Obtém o progresso atual da análise.
         
         Returns:
-            Porcentagem de progresso (0-100).
+            Porcentagem de progresso (0-100)
         """
         return self.progress
 
@@ -283,7 +318,10 @@ class DriveService:
         """Obtém o progresso detalhado da análise.
         
         Returns:
-            Dicionário com 'percent', 'current' e 'total'.
+            Dicionário com:
+            - percent: Porcentagem de conclusão
+            - current: Número do arquivo atual
+            - total: Total de arquivos a processar
         """
         return {
             'percent': self.progress,
